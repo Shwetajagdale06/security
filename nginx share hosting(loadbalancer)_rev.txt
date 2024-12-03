@@ -1,0 +1,33 @@
+1st mc
+
+mkdir /web1
+cd web1
+nano index.html 
+	<h1>Web server 1</h1>
+mkdir web2
+cd web2
+nano index.html
+ 	<h1>Web Server 2</h1>
+docker run -d --name "web1" -v /web1:/usr/share/nginx/html -p 81:80 ngnix
+docker run -d --name "web2" -v /web2:/usr/share/nginx/html -p 82:80 ngnix
+
+2nd mc
+
+apt install nginx -y
+unlink /etc/nginx/site-ebable/default
+vim /etc/nginx/conf.d/load.conf
+	upstream back{
+			server second mc ip:81;
+			server second mc ip:82;
+	}
+	
+	server {
+		listen 80;
+		serve_name second mc ip;
+		location / {
+				proxy_pass http://back;
+			}
+		}
+systemctl restart ngnix
+
+curl http://second mc ip  (some timw show web 1 ....and web2)
