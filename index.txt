@@ -1,0 +1,6 @@
+<?php
+ $file = $_GET['lang'];  
+	echo "<h1> MAIN PAGE </h1>";
+ include('/var/www/html/' . $file)
+
+?>

@@ -1,0 +1,147 @@
+apt install squid -y
+systemctl restart squid
+systemctl enable squid
+firewall-cmd --zone=public --add-service=squid --permanent
+firewall-cmd --reload
+
+
+
+squid -k reconfigure
+PORT : 3128
+
+_____________________________________________________________________________
+			Allow local network
+_____________________________________________________________________________
+ vim /etc/squid/squid.conf
+	acl internet_allow src 192.168.206.121/32
+	http_access allow internet_allow
+
+squid -k reconfigure
+curl -x squid-proxy-server-IP:3128 http://google.com -I
+curl -O -L "https://www.redhat.com/index.html" -x "proxy.example.com:3128"
+
+____________________________________________________________________________
+				Block IP
+_____________________________________________________________________________
+
+acl banned1 src 172.18.90.100-109
+http_access deny banned1
+http_reply_access allow all 
+
+
+.................Go to browser and set proxy manually.........
+seting-network proxy ip and port 3128
+
+................................................................
+
+curl -x squid-proxy-server-IP:3128 http://google.com -I
+curl -O -L "https://www.redhat.com/index.html" -x "proxy.example.com:3128"
+
+
+_____________________________________________________________
+OTHER IMP HEADERS: You can block/disallow them if you want
+follow_x_forwarded_for deny all
+forwarded_for delete [covered previously]
+via off
+________________________________________________________________
+
+
+
+_____________________________________________________________________________
+		 change squid proxy hostname
+_____________________________________________________________________________
+
+# vim /etc/squid/squid.conf
+
+visible_hostname anything
+
+_____________________________________________________________________________
+		check logs
+_____________________________________________________________________________
+
+ tail -f /var/log/squid/access.log
+
+_____________________________________________________________________________
+		block facebook.com and youtube.com
+_____________________________________________________________________________
+
+We will block domains such as facebook.com and youtube.com
+
+acl blocksite1 dstdomain .facebook.com .youtube.com
+http_access deny blocksite1
+
+------------------------------------------------------------
+To restrict by a part of the URI, do:
+
+acl banned_reddit url_regex ˆhttp://.*reddit.com/.*$
+http_access deny banned_reddit
+------------------------------------------------------------
+
+_____________________________________________________________________________
+		allow/block specific website
+_____________________________________________________________________________
+
+
+# cat > /etc/squid/blockedsites.squid
+.tesla.com
+.gmail.com
+.cdac.in
+
+#vim /etc/squid/squid.conf 
+
+acl blocksites dstdomain "/etc/squid/blockedsites.squid"
+http_access deny blocksites
+
+OR
+
+acl blocksites url_regex "/etc/squid/blockedsites.squid"
+http_access deny blocksites
+
+
+___________________________________________________________________________
+			BLOCK PORT
+___________________________________________________________________________
+
+acl block_port port 80
+http_access deny block_port
+
+acl Safe_ports port 80 21 443 563 70 210 1025-65535
+http_access deny !Safe_ports
+
+__________________________________________________________________________
+			BLOCK SPECIFIC WORDS
+___________________________________________________________________________
+
+# vim /etc/squid/ban_keywords.txt
+gambling
+spyware
+bad
+:wq
+
+# vim /etc/squid/squid.conf
+acl bad_keywords url_regex "/etc/squid/ban_keywords.txt"
+http_access deny bad_keywords
+
+_____________________________________________________________________________
+		BLOCK SPECIFIC FILES
+_____________________________________________________________________________
+++++++ You can also block files
+# vim /etc/squid/blockfiles.squid
+\.torrent.*$
+\.mp3.*$
+\.m3u8.*$
+\.mp4.*$
+
+# vim /etc/squid/squid.conf
+acl blockfiles urlpath_regex "/etc/squid/blockfiles.squid"
+http_access deny blockfiles
+
+___________________________________________________________________________
+		SET WORKING HOURS
+________________________________________________________________________
+#vim /etc/squid/squid.conf
+
+
+acl working_hours time 10:00-17:00
+http_access deny working_hours
+------------

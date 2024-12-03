@@ -1,0 +1,159 @@
+apt install snort -y
+cp -av /etc/snort/snort.conf /etc/snort/snort.conf_orig_$(date -I)
+
+______________________________________________
+ Analyse config file:
+________________________________________________
+# vim /etc/snort/snort.conf
+
+ipvar HOME_NET 192.168.206.0(your m/c ip)/24
+
+And comment all the rules accept local_rules.
+
+:wq
+
+snort -T -i enp0s3 -c /etc/snort/snort.conf
+snort -D
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Rule Actions:
+`````````````
+alert		: Alert and log the packet
+log		: log the packet
+pass		: ignore the packet
+drop		: block and log the packet
+reject		: block the packet, log it and send TCP reset 
+sdrop		: block the packet and do not log it
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+______________________________________________
+		any packet detection
+________________________________________________
+vim /etc/snort/rules/local.rules
+	alert ip any any -> any any (msg: "IP Packet detected"; sid: 10000; rev:1;) 
+
+snort -A console -q -i eth0 -c /etc/snort/snort.conf
+
+
+______________________________________________
+		PING packet detection
+________________________________________________
+vim /etc/snort/rules/local.rules
+	alert icmp any any -> $HOME_NET any (msg: "LOL ICMP"; sid: 1000001; rev: 1;)
+
+snort -T -i eth0 -c /etc/snort/snort.con
+snort -A console -q -i eth0 -c /etc/snort/snort.conf
+
+
+_______________________________________________________
+		FTP Packet Detection
+________________________________________________________
+
+vim /etc/snort/rules/local.rules
+
+	alert tcp any any -> $HOME_NET 21 (msg: "FTP Connection"; sid: 1000002; rev: 1;)
+
+snort -A console -q -i eth0 -c /etc/snort/snort.conf
+............output...........
+02/13-12:32:43.635836  [**] [1:1000002:1] FTP Connection [**] [Priority: 0] {TCP} 192.168.86.1:37519 -> 192.168.86.128:21
+02/13-12:32:43.636304  [**] [1:1000002:1] FTP Connection [**] [Priority: 0] {TCP} 192.168.86.1:37519 -> 192.168.86.128:21
+
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+d) FLAG detection rule:
+```````````````````````
+F - FIN 
+S - SYN
+R - RST
+P - PSH
+A - ACK
+U - URG
+0 (zero) - NO FLAG
+
+There are also logical operators:
+`````````````````````````````````
++ - ALL flag, match on all specified flags plus any others
+* - ANY flag, match on any of the specified flags
+! - NOT flag, match if the specified flags aren't set in the packet
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+______________________________________________________________________
+			Syn packet detection
+_____________________________________________________________________
+vim /etc/snort/rules/local.rules
+		alert tcp any any -> $HOME_NET any (flags: S; msg: "SYN Packet"; sid: 1000003; rev: 1;)
+
+
+snort -A console -q -i eth0 -c /etc/snort/snort.conf
+
+
+
+
+
+
+
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+
+____________________________________________________________________________
+
+Write a rule to check Nmap SYN scan on your server from external network
+____________________________________________________________________________
+	alert tcp any any -> $HOME_NET any (msg:"Nmap SYN scan detected"; flags:S; threshold:type limit, track by_src, count 20, seconds 3; sid:1000001; rev:1;)
+
+on ther m/c
+nmap -sS ip(rule ip)
+
+
+
+_______________________________________________________
+ Detect Access to /admin Pages
+________________________________________________
+
+alert http any any -> $HOME_NET 80 (msg:"Access to /admin page detected"; content:"/admin"; http_uri; nocase; sid:1000002; rev:1;)
+
+curl http://<target-IP>/admin
+___________________________________________________
+Detect FTP Failed Login Attempts
+___________________________________________________
+
+alert tcp any any -> $HOME_NET 21 (msg:"FTP failed login attempt"; content:"530 Login incorrect"; flow:from_server,established; sid:1000003; rev:1;)
+
+
+ftp <target-IP>
+
+______________________________________________________
+Detect HTTP Packets
+______________________________________________________
+
+alert tcp any any -> $HOME_NET 80 (msg:"HTTP packet detected"; content:"GET"; http_method; sid:1000004; rev:1;)
+
+curl http://<target-IP>
+
+
+_________________________________________________________
+Create snort rule to detect:
+
+- From external networks 10.0.0.0/8, 1.0.0.0/24, 196.2.3.0/16 and 8.8.8.8
+- from ports 9090, 8080, 22, 80, 443
+- To internal network 192.168.82.0/24 on port 53/UDP
+- content "thisissometempspace whoiscool"
+- with NO TCP flags
+- classification must be "DNS bind" with description is "DNS data triggered" and priority must be 8
+
+____________________________________________________________
+alert udp [10.0.0.0/8,1.0.0.0/24,196.2.3.0/16,8.8.8.8] [9090,8080,22,80,443] -> 192.168.82.0/24 53 (msg:"DNS data triggered"; content:"thisissometempspace whoiscool"; nocase; classtype:dns-query; priority:8; sid:1000005; rev:1;)
+
+
+
