@@ -156,4 +156,5 @@ ____________________________________________________________
 alert udp [10.0.0.0/8,1.0.0.0/24,196.2.3.0/16,8.8.8.8] [9090,8080,22,80,443] -> 192.168.82.0/24 53 (msg:"DNS data triggered"; content:"thisissometempspace whoiscool"; nocase; classtype:dns-query; priority:8; sid:1000005; rev:1;)
 
 
+hping3 --udp -c 1 -p 53 --spoof 10.0.0.1 -a 9090 192.168.82.10
 
